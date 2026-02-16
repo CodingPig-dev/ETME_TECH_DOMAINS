@@ -1,6 +1,12 @@
 <?php
 $device = php_sapi_name() === 'cli' ? gethostname() : ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-$hashed_device = substr(hash('sha256', $device), 0, -3);
+$secret = getenv('SECRET_KEY') ?: '';
+if ($secret === '') {
+    error_log('WARNING: SECRET_KEY not set; using fallback hashing (set SECRET_KEY in environment for better security)');
+    $hashed_device = substr(hash('sha256', $device), 0, 16);
+} else {
+    $hashed_device = substr(hash_hmac('sha256', $device, $secret), 0, 16);
+}
 $rateFile = __DIR__ . '/rate_create_password.json';
 $rates = json_decode(file_get_contents($rateFile) ?: '{}', true);
 $now = time();
@@ -51,9 +57,20 @@ if ($hash === false) {
 }
 echo "Password hash:\n" . $hash . "\n";
 if ($save) {
-    $cfg = "<?php\nreturn [\n    'delete_password_hash' => '" . addslashes($hash) . "'\n];\n";
+    // If there's an existing config, keep its secret_key if present, else generate a new one
+    $existing = [];
+    if (file_exists(__DIR__ . '/config.php')) {
+        $existing = include __DIR__ . '/config.php';
+        if (!is_array($existing)) $existing = [];
+    }
+    $secret_key = $existing['secret_key'] ?? null;
+    if (empty($secret_key)) {
+        // generate a 32 byte random key, hex encoded
+        $secret_key = bin2hex(random_bytes(32));
+    }
+    $cfg = "<?php\nreturn [\n    'delete_password_hash' => '" . addslashes($hash) . "',\n    'secret_key' => '" . addslashes($secret_key) . "'\n];\n";
     $tmp = __DIR__ . '/config.php.tmp';
     file_put_contents($tmp, $cfg);
     rename($tmp, __DIR__ . '/config.php');
-    echo "Saved to config.php\n";
+    echo "Saved to config.php (contains delete_password_hash and secret_key)\n";
 }
