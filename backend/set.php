@@ -35,6 +35,8 @@ if ($device === '') {
     $device = preg_replace('/[^a-zA-Z0-9._-]/', '', $device);
 }
 
+$hashed_device = substr(hash('sha256', $device), 0, -3);
+
 if (empty($_COOKIE['device_id']) || $_COOKIE['device_id'] !== $device) {
     setcookie('device_id', $device, time() + 31536000, '/');
 }
@@ -62,16 +64,16 @@ if ($isNew) {
         $rates = json_decode($rateJson, true) ?: [];
     }
 
-    $last = $rates[$device] ?? 0;
+    $last = $rates[$hashed_device] ?? 0;
     $now = time();
     $wait = $isAdmin ? 1 : 180;
     if ($now - $last < $wait) {
         $remaining = $wait - ($now - $last);
-        echo json_encode(['error' => 'rate_limited', 'retry_seconds' => $remaining, 'device_id' => $device]);
+        echo json_encode(['error' => 'rate_limited', 'retry_seconds' => $remaining, 'device_id' => $hashed_device]);
         exit;
     }
 
-    $rates[$device] = $now;
+    $rates[$hashed_device] = $now;
     $tmp = $rateFile . '.tmp';
     file_put_contents($tmp, json_encode($rates, JSON_PRETTY_PRINT));
     rename($tmp, $rateFile);
@@ -87,4 +89,4 @@ $tmp = $mappingFile . '.tmp';
 file_put_contents($tmp, json_encode($data, JSON_PRETTY_PRINT));
 rename($tmp, $mappingFile);
 
-echo json_encode(['ok' => true, 'domain' => $domain, 'url' => $url, 'created' => $isNew, 'device_id' => $device]);
+echo json_encode(['ok' => true, 'domain' => $domain, 'url' => $url, 'created' => $isNew, 'device_id' => $hashed_device]);
