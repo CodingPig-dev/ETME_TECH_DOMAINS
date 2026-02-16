@@ -5,7 +5,7 @@ $rateFile = __DIR__ . '/rate_list.json';
 $rates = json_decode(file_get_contents($rateFile) ?: '{}', true);
 $now = time();
 $rates = array_filter($rates, function($timestamp) use ($now) {
-    return ($now - $timestamp) < 86400; 
+    return ($now - $timestamp) < 86400;
 });
 if (isset($rates[$hashed_device]) && ($now - $rates[$hashed_device]) < 1) {
     http_response_code(429);
