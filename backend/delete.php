@@ -1,11 +1,13 @@
 <?php
 header('Content-Type: application/json');
 
+require_once __DIR__ . '/prune_rates.php';
+@prune_rates(__DIR__);
+
 $domain = trim($_POST['domain'] ?? '');
 $password = $_POST['password'] ?? '';
 
 $hash = getenv('DELETE_PASSWORD_HASH') ?: null;
-$plaintext_env = getenv('DELETE_PASSWORD') ?: null;
 
 if (empty($hash)) {
     if (file_exists(__DIR__ . '/config.php')) {
@@ -19,10 +21,6 @@ if (empty($hash)) {
 $allowed = false;
 if (!empty($hash)) {
     if ($password !== '' && password_verify($password, $hash)) {
-        $allowed = true;
-    }
-} elseif (!empty($plaintext_env)) {
-    if ($password !== '' && hash_equals($plaintext_env, $password)) {
         $allowed = true;
     }
 }
