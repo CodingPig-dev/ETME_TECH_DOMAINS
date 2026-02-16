@@ -295,15 +295,22 @@ async function showPreviewForDomain(domain) {
   });
 }
 
-(function () {
-  let rawDomain = getQueryParam('domain');
-  const topQ = getQueryParam('q');
-  if (rawDomain && topQ && rawDomain.indexOf('q=') === -1) {
-    rawDomain = rawDomain + (rawDomain.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(topQ);
+chrome.storage.local.get('consent', (result) => {
+  if (!result.consent) {
+    document.body.innerHTML = '<p>You must consent to the privacy policy to use this extension. Please click the extension icon to agree.</p>';
+    return;
   }
-  if (!rawDomain) rawDomain = 'unknown';
-  console.log('viewer: raw domain param ->', rawDomain);
-  const domain = parseDomainInput(rawDomain);
-  console.log('viewer: parsed domain ->', domain);
-  showPreviewForDomain(domain);
-})();
+
+  (function () {
+    let rawDomain = getQueryParam('domain');
+    const topQ = getQueryParam('q');
+    if (rawDomain && topQ && rawDomain.indexOf('q=') === -1) {
+      rawDomain = rawDomain + (rawDomain.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(topQ);
+    }
+    if (!rawDomain) rawDomain = 'unknown';
+    console.log('viewer: raw domain param ->', rawDomain);
+    const domain = parseDomainInput(rawDomain);
+    console.log('viewer: parsed domain ->', domain);
+    showPreviewForDomain(domain);
+  })();
+});
