@@ -11,6 +11,7 @@
     <label>Domain: <input type="text" name="domain" required></label><br>
     <label>URL: <input type="url" name="url" required></label><br>
     <label>Password (optional): <input type="password" name="password"></label><br>
+    <label><input type="checkbox" id="consent" name="consent"> I agree that a persistent device identifier may be stored for rate-limiting (optional)</label><br>
     <button type="submit">Create</button>
   </form>
 
@@ -32,7 +33,13 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const f = new FormData(form);
-      f.append('device_id', getDeviceId());
+      const consentChecked = document.getElementById('consent').checked;
+      if (consentChecked) {
+        f.append('device_id', getDeviceId());
+        f.append('consent', '1');
+      } else {
+        f.append('consent', '0');
+      }
       const resp = await fetch('set.php', { method: 'POST', body: f });
       const j = await resp.json();
       if (j.ok) {
