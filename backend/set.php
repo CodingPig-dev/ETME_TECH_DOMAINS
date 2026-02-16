@@ -1,6 +1,9 @@
 <?php
 header('Content-Type: application/json');
 
+require_once __DIR__ . '/prune_rates.php';
+@prune_rates(__DIR__);
+
 $domain = trim($_POST['domain'] ?? '');
 $url = trim($_POST['url'] ?? '');
 
@@ -28,17 +31,66 @@ if ($mapJson !== false) {
     $data = json_decode($mapJson, true) ?: [];
 }
 
-$device = trim($_POST['device_id'] ?? ($_COOKIE['device_id'] ?? ''));
-if ($device === '') {
-    $device = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+// Determine raw device identifier: prefer explicit device_id from client, else cookie, else remote addr
+$raw_device = trim($_POST['device_id'] ?? ($_COOKIE['device_id'] ?? ''));
+if ($raw_device === '') {
+    $raw_device = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 } else {
-    $device = preg_replace('/[^a-zA-Z0-9._-]/', '', $device);
+    $raw_device = preg_replace('/[^a-zA-Z0-9._-]/', '', $raw_device);
 }
 
-$hashed_device = substr(hash('sha256', $device), 0, -3);
+// Use HMAC with a server-side SECRET_KEY to pseudonymize identifiers
+$secret = getenv('SECRET_KEY') ?: '';
+if ($secret === '' && file_exists(__DIR__ . '/config.php')) {
+    $cfg = include __DIR__ . '/config.php';
+    if (is_array($cfg) && !empty($cfg['secret_key'])) {
+        $secret = $cfg['secret_key'];
+    }
+}
+if ($secret === '') {
+    // WARNING: production should set SECRET_KEY; fallback to plain hash but do not store raw IP in cookies
+    error_log('WARNING: SECRET_KEY not set; using fallback hashing (set SECRET_KEY in environment or config.php for better security)');
+    $hashed_device = substr(hash('sha256', $raw_device), 0, 16);
+} else {
+    $hashed_device = substr(hash_hmac('sha256', $raw_device, $secret), 0, 16);
+}
 
-if (empty($_COOKIE['device_id']) || $_COOKIE['device_id'] !== $device) {
-    setcookie('device_id', $device, time() + 31536000, '/');
+// Only set a persistent cookie if the client explicitly consented (e.g., sent consent=1)
+$consent = ($_POST['consent'] ?? ($_COOKIE['consent'] ?? '')) === '1';
+if ($consent) {
+    // set secure cookie with flags; requires PHP 7.3+ for array options
+    $cookieValue = $hashed_device;
+    $cookieParams = [
+        'expires' => time() + 31536000,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ];
+    setcookie('device_id', $cookieValue, $cookieParams);
+
+    // Log consent minimally to consent_log.json for proof (hashed device, domain, timestamp)
+    $consentFile = __DIR__ . '/consent_log.json';
+    $consentEntries = [];
+    $now = time();
+    $consentJson = @file_get_contents($consentFile);
+    if ($consentJson !== false) {
+        $consentEntries = json_decode($consentJson, true) ?: [];
+    }
+    $consentEntries[] = [
+        'device' => $hashed_device,
+        'domain' => $domain,
+        'ts' => $now,
+        'action' => 'consent_given'
+    ];
+    // Prune consent entries older than 90 days (90 * 24 * 3600)
+    $cutoff = $now - (90 * 24 * 3600);
+    $consentEntries = array_values(array_filter($consentEntries, function($e) use ($cutoff) {
+        return isset($e['ts']) && $e['ts'] >= $cutoff;
+    }));
+    $tmp = $consentFile . '.tmp';
+    file_put_contents($tmp, json_encode($consentEntries, JSON_PRETTY_PRINT));
+    rename($tmp, $consentFile);
 }
 
 $password = $_POST['password'] ?? '';
