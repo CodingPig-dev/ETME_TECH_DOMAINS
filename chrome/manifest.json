@@ -2,14 +2,15 @@
   "manifest_version": 3,
   "name": "ETME TECH Domains",
   "version": "0.1.0",
-  "description": "A Chrome extension that intercepts Google searches for ETME domains (@etme or etme:), validates domain labels (min 4 chars unless starting with 'etme:' or ending with '@etme'), resolves via API, and displays content in an embedded viewer.",
+  "description": "A Chrome extension that intercepts Google searches for ETME domains (@etme or etme:), validates domain labels (min 4 chars unless starting with 'etme:' or ending with '@etme'), resolves via API, and displays content in an embedded viewer. Requires broad permissions to fetch arbitrary URLs for domain resolution.",
   "permissions": ["storage", "tabs", "webNavigation"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "ETME TECH Domains"
+    "default_title": "ETME TECH Domains",
+    "default_popup": "privacy.html"
   },
   "web_accessible_resources": [
     {
