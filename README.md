@@ -41,7 +41,7 @@ This extension validates ETME domains (e.g., `@etme` or `etme://`), resolves the
 
 ## Adding New Domains
 
-To add a new domain mapping, visit the web interface at: `https://epi.etme-tech.me/web/new.html`
+To add a new domain mapping, visit the web interface at: `https://epi.etme-tech.me/web/new.html` or as an etme url `new.domain`
 
 ### Steps:
 1. Open the URL in your browser.
