@@ -1,9 +1,10 @@
 <?php
 $device = php_sapi_name() === 'cli' ? gethostname() : ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+$hashed_device = substr(hash('sha256', $device), 0, -3);
 $rateFile = __DIR__ . '/rate_create_password.json';
 $rates = json_decode(file_get_contents($rateFile) ?: '{}', true);
 $now = time();
-if (isset($rates[$device]) && ($now - $rates[$device]) < 1800) {
+if (isset($rates[$hashed_device]) && ($now - $rates[$hashed_device]) < 1800) {
     if (php_sapi_name() !== 'cli') {
         http_response_code(429);
         echo json_encode(['error' => 'rate limit exceeded']);
@@ -13,7 +14,7 @@ if (isset($rates[$device]) && ($now - $rates[$device]) < 1800) {
         exit(1);
     }
 }
-$rates[$device] = $now;
+$rates[$hashed_device] = $now;
 file_put_contents($rateFile, json_encode($rates));
 
 $save = in_array('--save', $argv, true);
