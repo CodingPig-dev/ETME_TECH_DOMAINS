@@ -3,53 +3,56 @@ const FORCE_REDIRECT = true;
 const API_BASE = 'https://epi.etme-tech.me/web/get.php?domain=';
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  try {
-    if (changeInfo.status !== 'complete' || !tab.url) return;
-    const url = new URL(tab.url);
-    if (!/(^|\.)google\./i.test(url.hostname)) return;
-    if (url.pathname !== '/search') return;
-    const q = url.searchParams.get('q');
-    if (!q) return;
-    let decoded = q;
-    for (let i = 0; i < 5; i++) {
-      try {
-        const d = decodeURIComponent(decoded);
-        if (d === decoded) break;
-        decoded = d;
-      } catch (e) { break; }
-    }
-    const extracted = extractIdFromText(decoded);
-    console.log('ETME raw q=', q, 'decoded=', decoded, 'extracted=', extracted);
-    let id = extracted || null;
-    if (!id) {
-      if (!FORCE_REDIRECT && !decoded.includes('@etme') && !decoded.toLowerCase().includes('etme:')) return;
-      if (decoded.includes('@')) id = decoded.split('@')[0];
-      else id = decoded;
-      id = id.replace(/^[a-z]+:(?:\/\/)?/i, '');
-    }
-    if (!id) return;
+  chrome.storage.local.get('consent', (result) => {
+    if (!result.consent) return; // Do not intercept if not consented
+    try {
+      if (changeInfo.status !== 'complete' || !tab.url) return;
+      const url = new URL(tab.url);
+      if (!/(^|\.)google\./i.test(url.hostname)) return;
+      if (url.pathname !== '/search') return;
+      const q = url.searchParams.get('q');
+      if (!q) return;
+      let decoded = q;
+      for (let i = 0; i < 5; i++) {
+        try {
+          const d = decodeURIComponent(decoded);
+          if (d === decoded) break;
+          decoded = d;
+        } catch (e) { break; }
+      }
+      const extracted = extractIdFromText(decoded);
+      console.log('ETME raw q=', q, 'decoded=', decoded, 'extracted=', extracted);
+      let id = extracted || null;
+      if (!id) {
+        if (!FORCE_REDIRECT && !decoded.includes('@etme') && !decoded.toLowerCase().includes('etme:')) return;
+        if (decoded.includes('@')) id = decoded.split('@')[0];
+        else id = decoded;
+        id = id.replace(/^[a-z]+:(?:\/\/)?/i, '');
+      }
+      if (!id) return;
 
-    id = id.trim();
-    id = id.split(/[\/ %?#\s]/)[0];
-    id = id.replace(/\.+$/, '');
-    const lastLabel = id.includes('.') ? id.split('.').pop() : '';
-    console.log('ETME check id=', id, 'lastLabel=', lastLabel);
-    const relaxLength = decoded && (/^etme:/i.test(decoded) || /@etme$/i.test(decoded));
-    if (!lastLabel) {
-      if (!relaxLength) return;
-    }
-    if (!relaxLength) {
-      if (!/^[A-Za-z]{4,63}$/.test(lastLabel)) return;
-    } else {
-      if (!/^[A-Za-z]{0,63}$/.test(lastLabel)) return;
-    }
-    if (tab._etmeHandled) return;
-    tab._etmeHandled = true;
+      id = id.trim();
+      id = id.split(/[\/ %?#\s]/)[0];
+      id = id.replace(/\.+$/, '');
+      const lastLabel = id.includes('.') ? id.split('.').pop() : '';
+      console.log('ETME check id=', id, 'lastLabel=', lastLabel);
+      const relaxLength = decoded && (/^etme:/i.test(decoded) || /@etme$/i.test(decoded));
+      if (!lastLabel) {
+        if (!relaxLength) return;
+      }
+      if (!relaxLength) {
+        if (!/^[A-Za-z]{4,63}$/.test(lastLabel)) return;
+      } else {
+        if (!/^[A-Za-z]{0,63}$/.test(lastLabel)) return;
+      }
+      if (tab._etmeHandled) return;
+      tab._etmeHandled = true;
 
-    handleIdForTab(tabId, id);
-  } catch (err) {
-    console.error('background onUpdated error', err);
-  }
+      handleIdForTab(tabId, id);
+    } catch (err) {
+      console.error('background onUpdated error', err);
+    }
+  });
 });
 
 function removeCspMetaAndBaseTags(html) {
