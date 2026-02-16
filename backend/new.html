@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Create New Domain</title>
+</head>
+<body>
+  <h1>Create New Domain</h1>
+  <form id="newForm">
+    <label>Domain: <input type="text" name="domain" required></label><br>
+    <label>URL: <input type="url" name="url" required></label><br>
+    <label>Password (optional): <input type="password" name="password"></label><br>
+    <button type="submit">Create</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    function getDeviceId() {
+      let id = localStorage.getItem('device_id');
+      if (!id) {
+        id = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem('device_id', id);
+      }
+      return id;
+    }
+
+    const form = document.getElementById('newForm');
+    const result = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = new FormData(form);
+      f.append('device_id', getDeviceId());
+      const resp = await fetch('set.php', { method: 'POST', body: f });
+      const j = await resp.json();
+      if (j.ok) {
+        result.textContent = 'Success: ' + j.domain + ' → ' + j.url + (j.created ? ' (new)' : ' (updated)') + '\nDevice: ' + (j.device_id || 'n/a');
+      } else if (j.error === 'rate_limited') {
+        result.textContent = 'Rate limit: please try again in ' + j.retry_seconds + 's. Device: ' + (j.device_id || 'n/a');
+      } else {
+        result.textContent = 'Error: ' + (j.error || JSON.stringify(j));
+      }
+    });
+  </script>
+</body>
+</html>
