@@ -297,7 +297,7 @@ async function showPreviewForDomain(domain) {
 
 chrome.storage.local.get('consent', (result) => {
   if (!result.consent) {
-    document.body.innerHTML = '<p>You must consent to the privacy policy to use this extension. Please click the extension icon to agree.</p>';
+    document.body.textContent = 'You must consent to the privacy policy to use this extension. Please click the extension icon to agree.';
     return;
   }
 
