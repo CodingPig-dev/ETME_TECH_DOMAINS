@@ -10,7 +10,7 @@
   },
   "action": {
     "default_title": "ETME TECH Domains",
-    "default_popup": "privacy.html"
+    "default_popup": "popup.html"
   },
   "web_accessible_resources": [
     {
