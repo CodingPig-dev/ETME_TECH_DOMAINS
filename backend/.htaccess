@@ -1,0 +1,10 @@
+<IfModule mod_authz_core.c>
+  <FilesMatch "^(config.php|.*\.json|create_password.php)$">
+    Require all denied
+  </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+  <FilesMatch "^(config.php|.*\.json|create_password.php)$">
+    Deny from all
+  </FilesMatch>
+</IfModule>
