@@ -10,12 +10,21 @@
   },
   "action": {
     "default_title": "ETME TECH Domains",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "logo16.png",
+      "48": "logo48.png"
+    }
   },
   "web_accessible_resources": [
     {
       "resources": ["viewer.html", "viewer.js", "styles.css"],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "icons": {
+    "16": "logo16.png",
+    "48": "logo48.png",
+    "128": "logo128.png"
+  }
 }
