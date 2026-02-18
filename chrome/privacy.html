@@ -4,14 +4,62 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Privacy - ETME TECH Domains</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+        a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        label {
+            display: block;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #333333;
+            color: #ffffff;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #555555;
+        }
+        .container {
+            max-width: 600px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <h1>Privacy</h1>
-    <p>For privacy information regarding the Chrome extension "ETME TECH Domains", see: <a href="https://etme-tech.me/datenschutz.html" target="_blank">Privacy Policy</a></p>
-    <p>The extension processes data only temporarily for displaying content and uses local storage for caching.</p>
-    <p>To use the extension, you must agree to the privacy policy.</p>
-    <label><input type="checkbox" id="consent"> I agree to the <a href="https://epi.etme-tech.me/web/datenschutz.html" target="_blank">Privacy Policy</a></label><br>
-    <button id="activate">Activate Extension</button>
+    <div class="container">
+        <h1>Privacy</h1>
+        <a href="https://epi.etme-tech.me/web/datenschutz.html">Privacy Policy</a>
+        <br><br>
+        <div class="consent-section">
+            <label><input type="checkbox" id="consent"> I agree to the <a href="https://epi.etme-tech.me/web/datenschutz.html" target="_blank">Privacy Policy</a></label><br>
+            <button id="activate">Activate Extension</button>
+        </div>
+    </div>
     <script src="privacy.js"></script>
 </body>
 </html>
