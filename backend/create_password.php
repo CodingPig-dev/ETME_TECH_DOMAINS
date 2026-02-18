@@ -1,4 +1,21 @@
 <?php
+if (php_sapi_name() !== 'cli') {
+    ini_set('display_errors', '0');
+    ini_set('display_startup_errors', '0');
+    header('Content-Type: application/json; charset=utf-8');
+    set_exception_handler(function($e){
+        http_response_code(500);
+        error_log('Uncaught exception: ' . $e->getMessage());
+        echo json_encode(['error' => 'internal_server_error', 'message' => 'Internal server error']);
+        exit;
+    });
+    set_error_handler(function($errno, $errstr, $errfile, $errline){
+        http_response_code(500);
+        error_log("PHP error: $errstr in $errfile:$errline");
+        echo json_encode(['error' => 'internal_server_error', 'message' => 'Internal server error']);
+        exit;
+    });
+}
 $device = php_sapi_name() === 'cli' ? gethostname() : ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
 $secret = getenv('SECRET_KEY') ?: '';
 if ($secret === '') {
@@ -22,7 +39,6 @@ if (isset($rates[$hashed_device]) && ($now - $rates[$hashed_device]) < 1800) {
 }
 $rates[$hashed_device] = $now;
 file_put_contents($rateFile, json_encode($rates));
-
 $save = in_array('--save', $argv, true);
 $pwdArg = null;
 foreach ($argv as $arg) {
@@ -47,17 +63,30 @@ if ($pwdArg !== null) {
     }
 }
 if ($pwd === '') {
-    fwrite(STDERR, "Empty password\n");
-    exit(2);
+    if (php_sapi_name() !== 'cli') {
+        echo json_encode(['error' => 'empty password']);
+        exit;
+    } else {
+        fwrite(STDERR, "Empty password\n");
+        exit(2);
+    }
 }
 $hash = password_hash($pwd, PASSWORD_DEFAULT);
 if ($hash === false) {
-    fwrite(STDERR, "Failed to create password hash\n");
-    exit(3);
+    if (php_sapi_name() !== 'cli') {
+        echo json_encode(['error' => 'failed to create password hash']);
+        exit;
+    } else {
+        fwrite(STDERR, "Failed to create password hash\n");
+        exit(3);
+    }
 }
-echo "Password hash:\n" . $hash . "\n";
+if (php_sapi_name() !== 'cli') {
+    echo json_encode(['hash' => $hash]);
+} else {
+    echo "Password hash:\n" . $hash . "\n";
+}
 if ($save) {
-    // If there's an existing config, keep its secret_key if present, else generate a new one
     $existing = [];
     if (file_exists(__DIR__ . '/config.php')) {
         $existing = include __DIR__ . '/config.php';
@@ -65,12 +94,15 @@ if ($save) {
     }
     $secret_key = $existing['secret_key'] ?? null;
     if (empty($secret_key)) {
-        // generate a 32 byte random key, hex encoded
         $secret_key = bin2hex(random_bytes(32));
     }
     $cfg = "<?php\nreturn [\n    'delete_password_hash' => '" . addslashes($hash) . "',\n    'secret_key' => '" . addslashes($secret_key) . "'\n];\n";
     $tmp = __DIR__ . '/config.php.tmp';
     file_put_contents($tmp, $cfg);
     rename($tmp, __DIR__ . '/config.php');
-    echo "Saved to config.php (contains delete_password_hash and secret_key)\n";
+    if (php_sapi_name() !== 'cli') {
+        echo json_encode(['ok' => true, 'saved' => true]);
+    } else {
+        echo "Saved to config.php (contains delete_password_hash and secret_key)\n";
+    }
 }
