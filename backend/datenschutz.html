@@ -20,35 +20,51 @@
     <ul>
         <li><strong>Domain‑Mappings</strong> (Domain → URL), die von Nutzerinnen und Nutzern eingetragen werden. Zweck: Bereitstellung und Funktion der Domain‑Mapping‑Funktionalität.</li>
         <li><strong>Geräte‑Kennungen (device_id)</strong>, die entweder vom Nutzergerät (zufällig generierte ID) bereitgestellt oder — falls nicht vorhanden — serverseitig pseudonymisiert aus der IP‑Adresse erzeugt werden. Zweck: Rate‑Limiting zur Missbrauchsabwehr und zur Stabilisierung des Dienstes.</li>
-        <li><strong>IP‑Adressen</strong> werden nicht dauerhaft gespeichert in lesbarer Form. Für kurzfristiges Rate‑Limiting werden IP‑basierte Werte pseudonymisiert (HMAC mit serverseitigem Schlüssel) verarbeitet.</li>
+        <li><strong>IP‑Adressen</strong> werden nicht dauerhaft in lesbarer Form gespeichert. Für kurzfristiges Rate‑Limiting werden IP‑basierte Werte pseudonymisiert (HMAC mit serverseitigem Schlüssel) verarbeitet.</li>
         <li><strong>Technische Logdaten</strong> (z. B. Zeitstempel), die zur Fehlersuche und zum Schutz vor Missbrauch verarbeitet werden.</li>
     </ul>
 
     <h2>4. Rechtsgrundlage</h2>
-    <p>Die Verarbeitung basiert auf folgenden Rechtsgrundlagen:</p>
+    <p>Die Verarbeitung basiert auf folgenden Rechtsgrundlagen (konkret nach Verarbeitungszweck):</p>
     <ul>
-        <li>Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse): Schutz vor Missbrauch, Spam und zur Sicherstellung des Betriebs.</li>
-        <li>Art. 6 Abs. 1 lit. a DSGVO (Einwilligung): Soweit Sie der Speicherung einer persistierenden Geräte‑ID (z. B. per localStorage oder Cookie) ausdrücklich zustimmen.</li>
+        <li><strong>Rate‑Limit / Missbrauchsabwehr:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse) — wir verarbeiten pseudonymisierte Kennungen und technische Daten, um den Dienst vor Missbrauch zu schützen und den Betrieb sicherzustellen.</li>
+        <li><strong>Persistente Geräte‑Kennung (device_id):</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) — das Setzen einer persistenten device_id (z. B. in localStorage oder Cookie) erfolgt nur nach ausdrücklicher und vorheriger Einwilligung (Checkbox).</li>
     </ul>
 
-    <h2>5. Cookies und lokale Speicherung</h2>
-    <p>Unsere Chrome‑Erweiterung kann localStorage verwenden, um eine zufällig generierte <code>device_id</code> zu speichern. Diese persistente Geräte‑ID wird nur mit ausdrücklicher Zustimmung des Nutzers gesetzt. Auf der Weboberfläche kann ebenfalls ein Cookie <code>device_id</code> gesetzt werden, jedoch niemals mit der Roh‑IP als Wert.</p>
-    <p>Persistente Kennungen werden serverseitig pseudonymisiert (HMAC‑SHA256 mit einem geheimen Server‑Schlüssel), damit eine Reidentifikation durch unbekannte Dritte erschwert wird.</p>
+    <h2>5. Cookies, lokale Speicherung und Einwilligung (Consent)</h2>
+    <p>Unsere Chrome‑Erweiterung kann <code>localStorage</code> verwenden, um eine zufällig generierte <code>device_id</code> zu speichern. Diese persistente Geräte‑ID wird nur mit ausdrücklicher Zustimmung des Nutzers gesetzt.</p>
+    <p>Bevor Sie den Dienst nutzen können, müssen Sie die vorliegende Datenschutzerklärung akzeptieren (aktive Auswahl/Checkbox). Die Zustimmung wird serverseitig protokolliert (Zeitstempel und Version der Datenschutzerklärung). Sie können die Einwilligung jederzeit widerrufen; nach Widerruf werden persistente device_ids deaktiviert und serverseitig gelöscht, soweit technisch möglich.</p>
+    <p>Persistente Kennungen und IP‑basierte Pseudonyme werden serverseitig unter Verwendung von HMAC‑SHA256 mit einem geheimen Server‑Schlüssel pseudonymisiert, damit eine Reidentifikation für Unbefugte erschwert wird. Der HMAC‑Schlüssel verbleibt auf dem Server, ist zugriffsgeschützt und wird regelmäßig rotiert.</p>
 
     <h2>6. Speicherdauer</h2>
     <ul>
-        <li>Rate‑Limit‑Daten (pseudonymisierte Kennungen + Zeitstempel): maximal 24 Stunden.</li>
-        <li>Domain‑Mappings: werden solange gespeichert, bis sie vom Eintragenden gelöscht werden oder auf Antrag entfernt werden.</li>
+        <li><strong>Rate‑Limit‑Daten (pseudonymisierte Kennungen + Zeitstempel):</strong> Automatisierte Löschung älterer Einträge: Daten, die älter als 24 Stunden sind, werden aus dem aktiven Systems entfernt.</li>
+        <li><strong>Technische Logs:</strong> Es werden derzeit keine separaten Logdateien protokolliert.</li>
+        <li><strong>Backups:</strong> Es werden derzeit keine Backups der aktiven Daten angelegt.</li>
+        <li><strong>Domain‑Mappings:</strong> Werden solange gespeichert, bis sie vom Eintragenden gelöscht werden oder auf Antrag entfernt werden.</li>
     </ul>
 
-    <h2>7. Ihre Rechte</h2>
-    <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Widerspruch sowie das Recht auf Datenübertragbarkeit.</p>
+    <h2>7. Nutzungsvoraussetzung / Zustimmungspflicht</h2>
+    <p>Die Nutzung dieses Dienstes setzt die vorherige Zustimmung zu dieser Datenschutzerklärung voraus. Vor der erstmaligen Nutzung wird Ihnen eine Checkbox angezeigt, durch deren Markierung Sie der Verarbeitung gemäß dieser Erklärung zustimmen. Ohne diese Einwilligung können persistente Geräte‑Kennungen nicht gesetzt werden und bestimmte Funktionen können eingeschränkt sein.</p>
+    <p>Die Checkbox ist Teil der Chrome‑Erweiterung oder den zugehörigen HTML‑Seiten; Anfragen an die API werden überprüft, ob ein Consent‑Header (X‑ETME-Consent: 1) gesetzt ist oder ein Cookie <code>consent=1</code> vorhanden ist. Wird keine Zustimmung übermittelt, lehnt der Server die Anfrage ab.</p>
 
-    <h2>8. Löschanfragen / Kontakt</h2>
-    <p>Wenn Sie die Entfernung einer Domain aus dem Mapping wünschen, kontaktieren Sie mich bitte per E‑Mail an: <strong>elias.rickert2022@outlook.de</strong>.</p>
-    <p>Bitte geben Sie in der E‑Mail die betroffene Domain und – falls vorhanden – die verwendete Geräte‑ID (device_id) an. Zur Vermeidung missbräuchlicher Löschanfragen führen wir eine kurze Identitätsprüfung durch (z. B. Bestätigung per E‑Mail von der zur Domaingehörenden Adresse oder Angabe eines vom Eintragenden gesetzten Passworts). Nach positiver Prüfung werden wir die Domain so schnell wie möglich entfernen (in der Regel innerhalb von 24 Stunden).</p>
+    <h2>8. Ihre Rechte</h2>
+    <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Widerspruch sowie das Recht auf Datenübertragbarkeit. Anfragen beantworten wir in der Regel innerhalb eines Monats.</p>
 
-    <h2>9. Haftungshinweis / Urheberrecht</h2>
+    <h2>9. Löschanfragen / Kontakt</h2>
+    <p>Wenn Sie die Entfernung einer Domain aus dem Mapping wünschen oder eine sonstige Löschung beantragen, kontaktieren Sie mich bitte per E‑Mail an: <strong>elias.rickert2022@outlook.de</strong>.</p>
+    <p>Bitte geben Sie in der E‑Mail die betroffene Domain und – falls vorhanden – die verwendete Geräte‑ID (device_id) an. Zur Vermeidung missbräuchlicher Löschanfragen führen wir eine kurze Identitätsprüfung durch (z. B. Bestätigung per E‑Mail von der zur Domain gehörenden Adresse oder Angabe eines vom Eintragenden gesetzten Passworts). Nach positiver Prüfung werden wir die Domain so schnell wie möglich entfernen (in der Regel innerhalb von 24 Stunden). Hinweis: Es werden keine Backups angelegt.</p>
+
+    <h2>10. Hosting / Auftragsverarbeiter</h2>
+    <p>Die Server werden von mir selbst betrieben (Self‑Hosting) auf einem persönlichen Raspberry Pi; es findet keine Verarbeitung durch Dritte statt. Angaben zum Verantwortlichen und Standort finden Sie im <a href="https://etme-tech.me/impressum.html">Impressum</a>. Werden Drittleister eingesetzt, geschieht dies nur mit vertraglicher Regelung gemäß Art.28 DSGVO.</p>
+
+    <h2>11. Sicherheit</h2>
+    <p>Die Kommunikation mit unserem Dienst erfolgt ausschließlich über HTTPS. Serverseitig werden technische und organisatorische Maßnahmen zum Schutz der Daten umgesetzt (z. B. Zugriffsbeschränkungen, HMAC‑Pseudonymisierung, regelmäßige Schlüsselrotation). Bitte beachten Sie, dass Pseudonymisierung personenbezogene Daten nicht vollständig anonymisiert.</p>
+
+    <h2>12. Offenlegung des Quellcodes</h2>
+    <p>Der Quellcode dieses Projekts ist öffentlich auf GitHub einsehbar; es findet keine verdeckte Datenerhebung statt. Dadurch ist nachvollziehbar, welche Daten verarbeitet werden und wie dies technisch geschieht.</p>
+
+    <h2>13. Haftungshinweis / Urheberrecht</h2>
     <p>Die Chrome‑Erweiterung zeigt Inhalte von URLs an, die von Nutzern in Domain‑Mappings definiert werden. Nutzer sind selbst dafür verantwortlich, dass die verlinkten Inhalte keine Urheberrechte verletzen. Wir übernehmen keine Haftung für Urheberrechtsverletzungen durch die Nutzung der Erweiterung.</p>
 
     <p>Stand: 16. Februar 2026</p>
