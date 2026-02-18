@@ -28,9 +28,9 @@ This extension validates ETME domains (e.g., `@etme` or `etme://`), resolves the
 3. The results are displayed in a secure embedded viewer.
 
 ### Supported ETME Patterns
-- Example with `@etme`: `example@etme`
-- Example with `etme://`: `etme://mydomain.tech`
-- Direct domains: `valid-domain.com` (must meet minimum label requirements).
+- Example with `@etme`: `example.bruh@etme`
+- Example with `etme://`: `etme://example.bruh`
+- Direct domains: `example.bruh` (must meet minimum label requirements).
 
 ### What Happens in the Viewer?
 - The viewer fetches HTML content from the resolved ETME URL.
