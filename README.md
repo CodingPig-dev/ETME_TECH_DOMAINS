@@ -58,8 +58,20 @@ To add a new domain mapping, visit the web interface at: `https://epi.etme-tech.
 ## Backend
 
 The backend API resolves domain inputs into HTML content:
-- **Endpoint**: curl -i "https://epi.etme-tech.me/web/get.php?domain=test.bruh" -H "X-ETME-Consent: 1"
+- **Endpoint**: `https://epi.etme-tech.me/web/get.php?domain={domain}`
 - **Validation Rules**:
     - Domain labels must include at least 4 characters unless prefixed with `etme:` or suffixed with `@etme`.
     - The maximum label length is 63 characters.
 
+---
+
+## Permissions
+
+This extension requires certain permissions to function. Here's why each one is needed:
+
+- **storage**: Used to store user consent for the privacy policy and temporary data for previews (e.g., cached resolved URLs and headers). This ensures the extension only activates with explicit user approval and improves performance by avoiding repeated API calls.
+- **tabs**: Used to update the current tab to a loading page during resolution and then to the viewer page. This provides a seamless user experience without opening new windows.
+- **webNavigation**: Used to detect when a Google search page is fully loaded, allowing the extension to check for ETME patterns in the query and intercept accordingly.
+- **host_permissions** (`<all_urls>`): Used to fetch HTML content from any resolved ETME URL and display it securely in the embedded viewer. This broad permission is necessary because ETME domains can point to any website, but all content is sanitized to prevent security risks.
+
+These permissions are only used for the extension's core functionality and respect user privacy through consent requirements.
