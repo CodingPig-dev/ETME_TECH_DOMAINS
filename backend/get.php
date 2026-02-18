@@ -1,7 +1,42 @@
 <?php
-require_once __DIR__ . '/prune_rates.php';
-// prune rates (non-blocking if another process is running)
-@prune_rates(__DIR__);
+if (php_sapi_name() !== 'cli') {
+    ini_set('display_errors', '0');
+    ini_set('display_startup_errors', '0');
+    header('Content-Type: application/json; charset=utf-8');
+    set_exception_handler(function($e){
+        http_response_code(500);
+        error_log('Uncaught exception: ' . $e->getMessage());
+        echo json_encode(['error' => 'internal_server_error', 'message' => 'Internal server error']);
+        exit;
+    });
+    set_error_handler(function($errno, $errstr, $errfile, $errline){
+        http_response_code(500);
+        error_log("PHP error: $errstr in $errfile:$errline");
+        echo json_encode(['error' => 'internal_server_error', 'message' => 'Internal server error']);
+        exit;
+    });
+
+    // Consent check: require either header X-ETME-Consent: 1 or cookie consent=1
+    $consent_ok = false;
+    $hdr = $_SERVER['HTTP_X_ETME_CONSENT'] ?? $_SERVER['HTTP_X_ETMECONSENT'] ?? '';
+    if ($hdr === '1') $consent_ok = true;
+    if (isset($_COOKIE['consent']) && $_COOKIE['consent'] === '1') $consent_ok = true;
+    if (! $consent_ok) {
+        http_response_code(403);
+        echo json_encode(['error' => 'consent_required', 'message' => 'Consent to the privacy policy is required before using this API.']);
+        exit;
+    }
+}
+
+ob_start();
+register_shutdown_function(function() {
+    $content = ob_get_clean();
+    $json_pos = strpos($content, '{"');
+    if ($json_pos !== false) {
+        $content = substr($content, $json_pos);
+    }
+    echo $content;
+});
 
 $device = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 $secret = getenv('SECRET_KEY') ?: '';
@@ -17,8 +52,10 @@ if ($secret === '') {
 } else {
     $hashed_device = substr(hash_hmac('sha256', $device, $secret), 0, 16);
 }
+
 $rateFile = __DIR__ . '/rate_get.json';
-$rates = json_decode(file_get_contents($rateFile) ?: '{}', true);
+$rates = json_decode(@file_get_contents($rateFile) ?: '{}', true);
+if (!is_array($rates)) $rates = [];
 $now = time();
 if (isset($rates[$hashed_device]) && ($now - $rates[$hashed_device]) < 1) {
     http_response_code(429);
@@ -26,14 +63,30 @@ if (isset($rates[$hashed_device]) && ($now - $rates[$hashed_device]) < 1) {
     exit;
 }
 $rates[$hashed_device] = $now;
-file_put_contents($rateFile, json_encode($rates));
+@file_put_contents($rateFile, json_encode($rates));
 
-$domain = $_GET["domain"] ?? "";
-$json = file_get_contents("mapping.json");
-$data = json_decode($json, true);
+$domain = trim($_GET['domain'] ?? '');
+if ($domain === '') {
+    echo json_encode(['error' => 'domain required']);
+    exit;
+}
+$mapping = [];
+$phpCache = __DIR__ . '/mapping.php';
+$jsonFile = __DIR__ . '/mapping.json';
+if (file_exists($phpCache)) {
+    $m = @include $phpCache;
+    if (is_array($m)) $mapping = $m;
+}
+if (empty($mapping) && file_exists($jsonFile)) {
+    $json = @file_get_contents($jsonFile);
+    $m = $json ? json_decode($json, true) : [];
+    if (is_array($m)) $mapping = $m;
+}
 
-if (isset($data[$domain])) {
-    echo json_encode(["url" => $data[$domain]]);
+if (!is_array($mapping)) $mapping = [];
+
+if (isset($mapping[$domain])) {
+    echo json_encode(['url' => $mapping[$domain]]);
 } else {
-    echo json_encode(["error" => "unknown domain"]);
+    echo json_encode(['error' => 'unknown domain']);
 }
