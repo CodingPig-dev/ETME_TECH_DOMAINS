@@ -58,7 +58,7 @@ To add a new domain mapping, visit the web interface at: `https://epi.etme-tech.
 ## Backend
 
 The backend API resolves domain inputs into HTML content:
-- **Endpoint**: `https://epi.etme-tech.me/web/get.php?domain={domain}`
+- **Endpoint**: `curl -i "https://epi.etme-tech.me/web/get.php?domain=test.bruh" -H "X-ETME-Consent: 1"`
 - **Validation Rules**:
     - Domain labels must include at least 4 characters unless prefixed with `etme:` or suffixed with `@etme`.
     - The maximum label length is 63 characters.
