@@ -1,19 +1,13 @@
 <?php
-// prune_rates.php
-// Contains function prune_rates($dir, $rate_ttl, $consent_ttl)
-// When executed directly (CLI), it runs and prints a message.
-
-function prune_rates($dir = __DIR__, $rate_ttl = 86400, $consent_ttl = 0) {
+function prune_rates($dir = __DIR__, $rate_ttl = 23 * 3600, $consent_ttl = 0) {
     if ($consent_ttl === 0) $consent_ttl = 90 * 24 * 3600;
     $lockFile = $dir . '/.prune_lock';
     $fp = @fopen($lockFile, 'c');
     if (! $fp) return false;
-    // Try exclusive non-blocking lock
     if (!flock($fp, LOCK_EX | LOCK_NB)) {
         fclose($fp);
         return false;
     }
-
     try {
         $now = time();
         $cutoff = $now - $rate_ttl;
@@ -37,8 +31,6 @@ function prune_rates($dir = __DIR__, $rate_ttl = 86400, $consent_ttl = 0) {
                 rename($tmp, $file);
             }
         }
-
-        // Prune consent log
         $consentFile = $dir . '/consent_log.json';
         if (file_exists($consentFile)) {
             $json = @file_get_contents($consentFile);
@@ -60,11 +52,8 @@ function prune_rates($dir = __DIR__, $rate_ttl = 86400, $consent_ttl = 0) {
         flock($fp, LOCK_UN);
         fclose($fp);
     }
-
     return true;
 }
-
-// If executed directly from CLI or as top-level script, run once and print status.
 if (php_sapi_name() === 'cli' && realpath($argv[0] ?? '') === realpath(__FILE__)) {
     prune_rates(__DIR__);
     echo "Prune complete.\n";
