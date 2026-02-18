@@ -188,6 +188,9 @@ async function showPreviewForDomain(domain) {
     const entry = items[key];
     const iframe = document.getElementById('previewFrame');
 
+    if (entry && entry.title) document.title = entry.title;
+    if (entry && entry.favicon) setFaviconLink(entry.favicon);
+
     if (!entry) {
       try {
         if (domain && typeof domain === 'string' && domain.toLowerCase().endsWith('.bruh')) {
@@ -230,17 +233,13 @@ async function showPreviewForDomain(domain) {
       return;
     }
 
-    const initialMeta = extractTitleAndFaviconFromHtml(entry.html, entry.sourceUrl);
-    if (initialMeta.title) document.title = initialMeta.title;
-    if (initialMeta.favicon) setFaviconLink(initialMeta.favicon);
-
     if (entry && entry.blockedByFrame) {
-      console.warn('viewer: framing blocked detected for', entry.sourceUrl, 'navigating current tab to original');
+      console.warn('viewer: framing blocked detected for', entry.sourceUrl, 'redirecting directly');
       try { window.location.href = entry.sourceUrl; } catch (e) { }
       return;
     }
 
-    try {
+    if (iframe) {
       let done = false;
       function cleanListeners() {
         if (!iframe) return;
@@ -249,29 +248,43 @@ async function showPreviewForDomain(domain) {
       }
 
       function onLoad() {
+        console.log('viewer: onLoad called for iframe');
         if (done) return;
         done = true;
         try {
-          const doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
-          if (doc) {
-            try {
-              const title = doc.title;
-              if (title) document.title = title;
-              const iconEl = doc.querySelector && doc.querySelector('link[rel~="icon"]');
-              if (iconEl && (iconEl.getAttribute('href') || iconEl.href)) {
-                try { setFaviconLink(new URL(iconEl.getAttribute('href') || iconEl.href, entry.sourceUrl).href); } catch (e) { }
-              } else {
-                try { setFaviconLink(new URL('/favicon.ico', entry.sourceUrl).href); } catch (e) { }
-              }
-            } catch (e) { }
+          let doc = null;
+          try {
+            doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+          } catch (e) {
+            console.log('viewer: cannot access iframe content, cross-origin');
           }
-        } catch (e) { }
-        console.log('viewer: iframe load event fired');
-        cleanListeners();
-        try { chrome.storage.local.remove(key); } catch (e) { }
+          console.log('viewer: doc =', doc);
+
+          // Fetch the source URL to get the latest title and favicon
+          fetch(entry.sourceUrl).then(response => {
+            if (!response.ok) throw new Error('Fetch failed');
+            return response.text();
+          }).then(html => {
+            const { title, favicon } = extractTitleAndFaviconFromHtml(html, entry.sourceUrl);
+            if (title) document.title = title;
+            if (favicon) setFaviconLink(favicon);
+          }).catch(e => {
+            console.log('viewer: failed to fetch for title/favicon, keeping stored values', e);
+          });
+
+          try {
+            const title = doc && doc.title;
+            console.log('viewer: title =', title);
+          } catch (e) {
+            console.log('viewer: cross-origin access failed, but staying in iframe');
+          }
+        } catch (err) {
+          console.error('viewer onLoad error, not redirecting', err);
+        }
       }
 
       function onError() {
+        console.log('viewer: onError called for iframe, redirecting');
         if (done) return;
         done = true;
         cleanListeners();
@@ -279,19 +292,30 @@ async function showPreviewForDomain(domain) {
         try { window.location.href = entry.sourceUrl; } catch (e) { }
       }
 
-      if (iframe) {
-        iframe.addEventListener('load', onLoad);
-        iframe.addEventListener('error', onError);
-        iframe.src = entry.sourceUrl;
-      } else {
-        if (iframe) iframe.srcdoc = `<p>No iframe element found. <a href="${entry.sourceUrl}" target="_blank" rel="noopener">Open original</a></p>`;
-      }
-
-    } catch (err) {
-      console.error('Error preparing preview', err);
-      if (iframe) iframe.srcdoc = '<p>Failed to render preview.</p>';
-      try { chrome.storage.local.remove(key); } catch (e) { }
+      iframe.addEventListener('load', onLoad);
+      iframe.addEventListener('error', onError);
+      iframe.src = entry.sourceUrl;
+    } else {
+      try { window.location.href = entry.sourceUrl; } catch (e) { }
     }
+  });
+}
+
+function fetchWithConsent(url, options) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get('consent', async (res) => {
+      try {
+        const consent = !!(res && res.consent);
+        const hdrs = (options && options.headers) ? new Headers(options.headers) : new Headers();
+        if (consent) {
+          hdrs.set('X-ETME-Consent', '1');
+          console.debug('viewer fetchWithConsent: added X-ETME-Consent for', url);
+        }
+        const opts = Object.assign({}, options || {}, { headers: hdrs });
+        const r = await fetch(url, opts);
+        resolve(r);
+      } catch (e) { reject(e); }
+    });
   });
 }
 
@@ -304,6 +328,10 @@ chrome.storage.local.get('consent', (result) => {
   (function () {
     let rawDomain = getQueryParam('domain');
     const topQ = getQueryParam('q');
+    if (!rawDomain || rawDomain === 'null' || rawDomain === 'undefined' || (typeof rawDomain === 'string' && rawDomain.trim() === '')) {
+      document.body.innerHTML = '<div style="padding:16px;font-family:Arial,sans-serif;"><h3>No valid domain provided</h3><p>The extension did not receive a domain to preview. Please try again from the search results.</p></div>';
+      return;
+    }
     if (rawDomain && topQ && rawDomain.indexOf('q=') === -1) {
       rawDomain = rawDomain + (rawDomain.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(topQ);
     }
@@ -314,3 +342,8 @@ chrome.storage.local.get('consent', (result) => {
     showPreviewForDomain(domain);
   })();
 });
+
+if (location.pathname && location.pathname.endsWith('/null')) {
+  document.body.innerHTML = '<div style="padding:16px;font-family:Arial,sans-serif;"><h3>Invalid viewer URL</h3><p>The viewer was opened with an invalid URL ("/null"). Please reload the extension (chrome://extensions) and try again from the search results. If the problem persists, check the background service worker console for logs.</p></div>';
+  throw new Error('viewer opened at /null - aborting script');
+}
