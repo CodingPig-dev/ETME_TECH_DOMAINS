@@ -1,0 +1,5 @@
+<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg">
+  <rect width="48" height="48" fill="#333333"/>
+  <rect x="4" y="4" width="40" height="40" fill="#007acc" rx="8"/>
+  <text x="24" y="26" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">ETME</text>
+</svg>
